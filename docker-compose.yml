@@ -1,0 +1,87 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: mysql-local
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "RootPass2026!"
+      MYSQL_DATABASE: "innovatech_db"
+      MYSQL_USER: "app_user"
+      MYSQL_PASSWORD: "AppPass2026!"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - innovatech_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uapp_user", "-pAppPass2026!"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ventas:
+    build:
+      context: ./back-Ventas_SpringBoot/Springboot-API-REST
+    image: innovatech-ventas:local
+    container_name: ventas-api
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/innovatech_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_USERNAME: "app_user"
+      SPRING_DATASOURCE_PASSWORD: "AppPass2026!"
+      DB_ENDPOINT: "mysql"
+      DB_PORT: "3306"
+      DB_NAME: "innovatech_db"
+      DB_USERNAME: "app_user"
+      DB_PASSWORD: "AppPass2026!"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - innovatech_net
+
+  despachos:
+    build:
+      context: ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
+    image: innovatech-despachos:local
+    container_name: despachos-api
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/innovatech_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_USERNAME: "app_user"
+      SPRING_DATASOURCE_PASSWORD: "AppPass2026!"
+      DB_ENDPOINT: "mysql"
+      DB_PORT: "3306"
+      DB_NAME: "innovatech_db"
+      DB_USERNAME: "app_user"
+      DB_PASSWORD: "AppPass2026!"
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - innovatech_net
+
+  frontend:
+    build:
+      context: ./front_despacho
+    image: innovatech-frontend:local
+    container_name: frontend-app
+    restart: always
+    ports:
+      - "80:8080"
+    depends_on:
+      - ventas
+      - despachos
+    networks:
+      - innovatech_net
+
+volumes:
+  mysql_data:
+
+networks:
+  innovatech_net:
